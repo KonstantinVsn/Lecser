@@ -14,6 +14,7 @@ namespace lecser
             var _input = Loader.Load(path);
             var analizator = new Analizator();
             analizator.Analize(_input);
+            analizator.PrintTables();
             Console.ReadKey();
             _input.Close();
         }

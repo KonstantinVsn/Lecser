@@ -43,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="app code\Analizator.cs" />
+    <Compile Include="app code\Keyword.cs" />
     <Compile Include="app code\Loader.cs" />
     <Compile Include="app code\Resource.cs" />
     <Compile Include="app code\Types.cs" />

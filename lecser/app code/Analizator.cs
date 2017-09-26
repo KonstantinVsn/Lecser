@@ -10,10 +10,11 @@ namespace lecser.app_code
     {
         static CTypes type;
         static string temp;
-        public List<string> tableI;
-        public List<string> tableC;
-        public List<string> tableS;
-        public List<string> tableK;
+        public int col = 0, row = 0;
+        public List<Keyword> IdentifierT = new List<Keyword>();
+        public List<Keyword> ConstantT = new List<Keyword>();
+        public List<Keyword> DelimetrT = new List<Keyword>();
+        public List<Keyword> ReservedT = new List<Keyword>();
 
         public void Analize(StreamReader text)
         {
@@ -21,9 +22,11 @@ namespace lecser.app_code
             {
                 var symbol = (char)text.Read();
                 var acsiiCode = (int)symbol;
-
+                if (symbol == '\n')
+                    row++;
+                col++;
                 // или буква или _
-                if (IsLetter(acsiiCode) || (acsiiCode == 95))
+                if (IsLetterOrNum(acsiiCode) || (acsiiCode == 95))
                 {
                     if (temp == null)
                     {
@@ -36,7 +39,7 @@ namespace lecser.app_code
                     }
                     else
                     {
-                        DefineWord(temp, type);
+                        DefineWord(temp, type, row, col, acsiiCode);
                         temp += symbol;
                         type = CTypes.Kewword;
                     }
@@ -58,15 +61,15 @@ namespace lecser.app_code
                         }
                         else
                         {
-                            DefineWord(temp, type);
+                            DefineWord(temp, type, row, col, acsiiCode);
                             temp += symbol;
                             type = CTypes.Delimetr;
                         }
                     }
                 }
-                if((!IsLetter(acsiiCode) || (acsiiCode == 95)) && !IsDelimetr(symbol))
+                if ((!IsLetterOrNum(acsiiCode) || (acsiiCode == 95)) && !IsDelimetr(symbol))
                 {
-                    DefineWord(temp, type);
+                    DefineWord(temp, type, row, col, acsiiCode);
                     temp = null;
                     type = CTypes.WhiteSpace;
                 }
@@ -75,62 +78,71 @@ namespace lecser.app_code
         }
 
 
-        public void DefineWord(string word, CTypes type)
+        public void DefineWord(string word, CTypes type, int row, int col, int code)
         {
-            if (word != null)
-            {
-                Console.WriteLine(word, " -- ", type);
-            }
+            var l_word = new Keyword(code,row,col, word);
             temp = null;
-            //for (int j = 0; j < Resource.reservedWords.Length; j++)
-            //{
-            //    if (word == Resource.reservedWords[j])
-            //    {
-            //        for (int i = 0; i < tableK.Count; i++)
-            //        {
-            //            if (temp == tableK[i])
-            //            {
-            //                return;
-            //            }
-            //        }
-            //        tableK.Add(temp);
-            //        return;
-            //    }
-            //}
-            //switch (type)
-            //{
-            //    case CTypes.Identifier:
-            //        for (int j = 0; j < tableI.Count; j++)
-            //        {
-            //            if (temp == tableI[j])
-            //            {
-            //                return;
-            //            }
-            //        }
-            //        tableI.Add(temp);
-            //        break;
-            //    case CTypes.Constant:
-            //        for (int j = 0; j < tableC.Count; j++)
-            //        {
-            //            if (temp == tableC[j])
-            //            {
-            //                return;
-            //            }
-            //        }
-            //        tableC.Add(temp);
-            //        break;
-            //    case CTypes.Delimetr:
-            //        for (int j = 0; j < tableS.Count; j++)
-            //        {
-            //            if (temp == tableS[j])
-            //            {
-            //                return;
-            //            }
-            //        }
-            //        tableS.Add(temp);
-            //        break;
-            //}
-            //return;
+            col = 0;
+            if (type == CTypes.Kewword)
+            {
+                for (int j = 0; j < Resource.reservedWords.Length; j++)
+                {
+                    if (word == Resource.reservedWords[j])
+                    {
+                        for (int i = 0; i < ReservedT.Count; i++)
+                        {
+                            if (word == ReservedT[i].name)
+                            {
+                                return;
+                            }
+                        }
+                        ReservedT.Add(l_word);
+                        return;
+                    }
+                    else
+                        type = CTypes.Identifier;
+                }
+            }
+            switch (type)
+            {
+                case CTypes.Identifier:
+                    for (int j = 0; j < IdentifierT.Count; j++)
+                    {
+                        if (word == IdentifierT[j].name)
+                        {
+                            return;
+                        }
+                    }
+                    IdentifierT.Add(l_word);
+                    break;
+                case CTypes.Delimetr:
+                    for (int j = 0; j < DelimetrT.Count; j++)
+                    {
+                        if (word == DelimetrT[j].name)
+                        {
+                            return;
+                        }
+                    }
+                    DelimetrT.Add(l_word);
+                    break;
+            }
+            return;
+        }
+
+        public void PrintTables()
+        {
+            Console.WriteLine("зарезервированые слова");
+            var i = 0;
+            foreach (var item in ReservedT)
+                Console.WriteLine(++i + ": " + item.name);
+            Console.WriteLine("\n делиметры");
+            i = 0;
+            foreach (var item in DelimetrT)
+                Console.WriteLine(++i + ": " + item.name);
+            Console.WriteLine("\n идентификаторы");
+            i = 0;
+            foreach (var item in IdentifierT)
+                Console.WriteLine(++i + ": " + item.name);
         }
         #region private methods
         private bool IsNumber(int acsiiCode)
@@ -138,9 +150,9 @@ namespace lecser.app_code
             return ((acsiiCode >= 48) && (acsiiCode <= 57)) ? true : false;
         }
 
-        private bool IsLetter(int acsiiCode)
+        private bool IsLetterOrNum(int acsiiCode)
         {
-            return ((acsiiCode >= 65) && (acsiiCode <= 90)) || ((acsiiCode >= 97) && (acsiiCode <= 122)) ? true : false;
+            return ((acsiiCode >= 65) && (acsiiCode <= 90)) || ((acsiiCode >= 97) && (acsiiCode <= 122) || ((acsiiCode >= 48) && (acsiiCode <= 57))) ? true : false;
         }
 
         private bool IsDelimetr(char c)
@@ -162,6 +174,7 @@ namespace lecser.app_code
     public interface IAnalizator
     {
         void Analize(StreamReader text);
-        void DefineWord(string word, CTypes type);
+        void DefineWord(string word, CTypes type, int row, int col, int acsiiCode);
+        void PrintTables();
     }
 }
