@@ -45,6 +45,7 @@
     <Compile Include="app code\Analizator.cs" />
     <Compile Include="app code\Loader.cs" />
     <Compile Include="app code\Resource.cs" />
+    <Compile Include="app code\Types.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

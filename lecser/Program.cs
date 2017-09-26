@@ -12,10 +12,9 @@ namespace lecser
         {
             var path = "D:/5 курс/compilathor/_lecser/lecser/app data/input.txt";
             var _input = Loader.Load(path);
-            while (_input.Peek() >= 0)
-            {
-                Analizator.Analize((char)_input.Read());
-            }
+            var analizator = new Analizator();
+            analizator.Analize(_input);
+            Console.ReadKey();
             _input.Close();
         }
     }
