@@ -4,7 +4,7 @@
     {
         Identifier = 1,
         Constant = 2,
-        Kewword  = 3,
+        Keyword  = 3,
         Delimetr = 4,
         WhiteSpace = 5
 
