@@ -9,88 +9,112 @@ namespace lecser.app_code
     public class Analizator : IAnalizator
     {
         static CTypes type;
-        static string temp;
-        public int col = 0, row = 1, symbol_col = 0, keywordCount = 1, identifCount = 1, multiSymbolCount = 1;
-        public List<Word> IdentifierT = new List<Word>();
-        public List<Word> ConstantT = new List<Word>();
-        public List<Word> DelimetrT = new List<Word>();
-        public List<Word> ReservedT = new List<Word>();
+        static string temp;//временная 
+        int keywordCount = 1, identifCount = 1;
+        public List<Word> IdentifierT = new List<Word>();//таблица идентификаторов 
+        public List<Word> ConstantT = new List<Word>();//таблица констант  
+        public List<Word> DelimetrT = new List<Word>();//таблица делиметров
+        public List<Word> ReservedT = new List<Word>();//таблица зарезервированых слов
         public List<int> CodeT = new List<int>();
 
         public void Analize(StreamReader text)
         {
             while (text.Peek() >= 0)
             {
+                start:
                 var symbol = (char)text.Read();
                 var acsiiCode = (int)symbol;
-                if (symbol == '\n')
-                    row++;
-                col++;
-                // или буква или _
-                if (IsLetterOrNum(acsiiCode) || (acsiiCode == 95))
+                if (symbol == ' ')
+                {
+                    DefineWord(temp, type, acsiiCode);
+                    goto start;
+                }
+                if (IsLetterOrNum(acsiiCode))// если буква
                 {
                     if (temp == null)
                     {
-                        symbol_col = col;
                         temp += symbol;
                         type = CTypes.Keyword;
                     }
-                    else if (type == CTypes.Keyword)
+                    else if (type == CTypes.Keyword)//при встрече вророго раза буквы,продолжеем читать слово
                     {
                         temp += symbol;
                     }
                     else
-                    {   
-                        DefineWord(temp, type, row, symbol_col, acsiiCode);
+                    {
+                        DefineWord(temp, type, acsiiCode);
                         temp += symbol;
-                        symbol_col = 0;
                         type = CTypes.Keyword;
                     }
                 }
-
-                // или делиметр
-                foreach (var delim in Resource.delimiters)
+                foreach (var delim in Resource.delimiters)// если симаол делисметров
                 {
                     if (delim == symbol)
                     {
                         if (temp == null)
                         {
-                            symbol_col = col;
                             temp += symbol;
                             type = CTypes.Delimetr;
                         }
                         else if (type == CTypes.Delimetr)
                         {
-                            temp += symbol;
+                            if (IsComment(temp + symbol))//проверяем на возможность коентария
+                            {
+                                DefineWord(temp + symbol, type, acsiiCode);//если коментарий то записываем в таблицу
+
+                                do
+                                {
+                                    symbol = (char)text.Read();
+                                } while (symbol != '*');//игнорируем вунтри клментария
+
+                                temp += symbol;
+                                symbol = (char)text.Read();
+                                if (IsComment(temp + symbol))
+                                    DefineWord(temp + symbol, type, acsiiCode);
+                                else
+                                {
+                                    Error();//ошибка елли коментрарий не закрыт
+                                    return;
+                                }
+                                goto start;
+                            }
+                            else
+                            {
+                                DefineWord(temp, type, acsiiCode);
+                                temp += symbol;
+                            }
                         }
                         else
                         {
-                            DefineWord(temp, type, row, symbol_col, acsiiCode);
+                            DefineWord(temp, type, acsiiCode);
                             temp += symbol;
-                            symbol_col = 0;
                             type = CTypes.Delimetr;
                         }
+                        break;
                     }
                 }
-                if ((!IsLetterOrNum(acsiiCode) || (acsiiCode == 95)) && !IsDelimetr(symbol))
+                if ((!IsLetterOrNum(acsiiCode)) && !IsDelimetr(symbol))//если не буква и не делиметр
                 {
-                    DefineWord(temp, type, row, symbol_col, acsiiCode);
-                    temp = null;
-                    type = CTypes.WhiteSpace;
+                    DefineWord(temp, type, acsiiCode);
+                    if (symbol != '\r' && symbol != '\n')//если символ не входит в граматику - ошибка
+                    {
+                        Error();
+                        return;
+                    }
                 }
 
             }
-            
+
         }
 
 
-        public void DefineWord(string word, CTypes type, int row, int col, int code)
+        public void DefineWord(string word, CTypes type, int code)
         {
+            if (temp == null) return;
             code = GetCode(type, code);
-            var l_word = new Word(code,row,col, word);
+            var l_word = new Word(code, word);
             temp = null;
-            col = 0;
-            if (type == CTypes.Keyword)
+            if (type == CTypes.Keyword)//добавляем в таблицу если ключевое слово
             {
                 for (int j = 0; j < Resource.reservedWords.Length; j++)
                 {
@@ -109,12 +133,12 @@ namespace lecser.app_code
                         return;
                     }
                     else
-                        type = CTypes.Identifier;
+                        type = CTypes.Identifier;//если слово не заресервированое то считаем его идентификаторо 
                 }
             }
             switch (type)
             {
-                case CTypes.Identifier:
+                case CTypes.Identifier: //добавляем идентфикаторы
                     for (int j = 0; j < IdentifierT.Count; j++)
                     {
                         if (word == IdentifierT[j].name)
@@ -125,7 +149,7 @@ namespace lecser.app_code
                     FillCodeT(l_word);
                     IdentifierT.Add(l_word);
                     break;
-                case CTypes.Delimetr:
+                case CTypes.Delimetr://добавляем делиметры
                     for (int j = 0; j < DelimetrT.Count; j++)
                     {
                         if (word == DelimetrT[j].name)
@@ -159,7 +183,14 @@ namespace lecser.app_code
             foreach (var item in CodeT)
                 Console.Write(" " + item);
         }
+
         #region private methods
+
+        private void Error()
+        {
+            Console.WriteLine("ERROR");
+        }
+
         private bool IsNumber(int acsiiCode)
         {
             return ((acsiiCode >= 48) && (acsiiCode <= 57)) ? true : false;
@@ -181,11 +212,24 @@ namespace lecser.app_code
             }
             return false;
         }
+
+        private bool IsComment(string delimetr)
+        {
+            foreach (var delim in Resource.multi_delimiters)
+            {
+                if (delim == delimetr)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private int GetCode(CTypes type, int code)
         {
             if (type == CTypes.Keyword)
             {
-                code = 400 + keywordCount;
+                code = 399 + keywordCount;
                 keywordCount++;
             }
             if (type == CTypes.Identifier)
@@ -198,8 +242,9 @@ namespace lecser.app_code
 
         private void FillCodeT(Word word)
         {
-            CodeT.Add(word.code*word.row*word.col);
+            CodeT.Add(word.code);
         }
+
         #endregion
     }
 
@@ -208,7 +253,7 @@ namespace lecser.app_code
     public interface IAnalizator
     {
         void Analize(StreamReader text);
-        void DefineWord(string word, CTypes type, int row, int col, int acsiiCode);
+        void DefineWord(string word, CTypes type, int acsiiCode);
         void PrintTables();
     }
 }

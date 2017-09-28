@@ -8,12 +8,10 @@ namespace lecser.app_code
 {
     public class Word
     {
-        public Word(int code, int row, int col, string name)
+        public Word(int code, string name)
         {
             this.code = code;
             this.name = name;
-                this.row = row;
-            this.col = col;
         }
         public int code { get; set; }
 
