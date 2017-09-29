@@ -22,9 +22,9 @@ namespace lecser.app_code
             while (text.Peek() >= 0)
             {
                 start:
-                var symbol = (char)text.Read();
-                var acsiiCode = (int)symbol;
-                if (symbol == ' ')
+                var cur_symbol = (char)text.Read();
+                var acsiiCode = (int)cur_symbol;
+                if (cur_symbol == ' ')
                 {
                     DefineWord(temp, type, acsiiCode);
                     goto start;
@@ -33,44 +33,44 @@ namespace lecser.app_code
                 {
                     if (temp == null)
                     {
-                        temp += symbol;
+                        temp += cur_symbol;
                         type = CTypes.Keyword;
                     }
                     else if (type == CTypes.Keyword)//при встрече вророго раза буквы,продолжеем читать слово
                     {
-                        temp += symbol;
+                        temp += cur_symbol;
                     }
                     else
                     {
                         DefineWord(temp, type, acsiiCode);
-                        temp += symbol;
+                        temp += cur_symbol;
                         type = CTypes.Keyword;
                     }
                 }
                 foreach (var delim in Resource.delimiters)// если симаол делисметров
                 {
-                    if (delim == symbol)
+                    if (delim == cur_symbol)
                     {
                         if (temp == null)
                         {
-                            temp += symbol;
+                            temp += cur_symbol;
                             type = CTypes.Delimetr;
                         }
                         else if (type == CTypes.Delimetr)
                         {
-                            if (IsComment(temp + symbol))//проверяем на возможность коентария
+                            if (IsComment(temp + cur_symbol))//проверяем на возможность коентария
                             {
-                                DefineWord(temp + symbol, type, acsiiCode);//если коментарий то записываем в таблицу
+                                DefineWord(temp + cur_symbol, type, acsiiCode);//если коментарий то записываем в таблицу
 
                                 do
                                 {
-                                    symbol = (char)text.Read();
-                                } while (symbol != '*');//игнорируем вунтри клментария
+                                    cur_symbol = (char)text.Read();
+                                } while (cur_symbol != '*');//игнорируем вунтри клментария
 
-                                temp += symbol;
-                                symbol = (char)text.Read();
-                                if (IsComment(temp + symbol))
-                                    DefineWord(temp + symbol, type, acsiiCode);
+                                temp += cur_symbol;
+                                cur_symbol = (char)text.Read();
+                                if (IsComment(temp + cur_symbol))
+                                    DefineWord(temp + cur_symbol, type, acsiiCode);
                                 else
                                 {
                                     Error();//ошибка елли коментрарий не закрыт
@@ -81,22 +81,22 @@ namespace lecser.app_code
                             else
                             {
                                 DefineWord(temp, type, acsiiCode);
-                                temp += symbol;
+                                temp += cur_symbol;
                             }
                         }
                         else
                         {
                             DefineWord(temp, type, acsiiCode);
-                            temp += symbol;
+                            temp += cur_symbol;
                             type = CTypes.Delimetr;
                         }
                         break;
                     }
                 }
-                if ((!IsLetterOrNum(acsiiCode)) && !IsDelimetr(symbol))//если не буква и не делиметр
+                if ((!IsLetterOrNum(acsiiCode)) && !IsDelimetr(cur_symbol))//если не буква и не делиметр
                 {
                     DefineWord(temp, type, acsiiCode);
-                    if (symbol != '\r' && symbol != '\n')//если символ не входит в граматику - ошибка
+                    if (cur_symbol != '\r' && cur_symbol != '\n')//если символ не входит в граматику - ошибка
                     {
                         Error();
                         return;
@@ -212,6 +212,8 @@ namespace lecser.app_code
             }
             return false;
         }
+
+
 
         private bool IsComment(string delimetr)
         {
