@@ -10,6 +10,7 @@ namespace lecser.app_code
     {
         static CTypes type;
         static string temp;//временная 
+        int col, row=1;
         int keywordCount = 1, identifCount = 1;
         public List<Word> IdentifierT = new List<Word>();//таблица идентификаторов 
         public List<Word> ConstantT = new List<Word>();//таблица констант  
@@ -23,12 +24,21 @@ namespace lecser.app_code
             {
                 start:
                 var cur_symbol = (char)text.Read();
+                
                 var acsiiCode = (int)cur_symbol;
                 if (cur_symbol == ' ')
                 {
-                    DefineWord(temp, type, acsiiCode);
+                    DefineWord(temp, type, acsiiCode, col - temp.Length+1, row);
                     goto start;
                 }
+                col++;
+                if (cur_symbol == '\n')
+                {
+                    col = 0;
+                    row++;
+                }
+                
+
                 if (IsLetterOrNum(acsiiCode))// если буква
                 {
                     if (temp == null)
@@ -42,7 +52,7 @@ namespace lecser.app_code
                     }
                     else
                     {
-                        DefineWord(temp, type, acsiiCode);
+                        DefineWord(temp, type, acsiiCode, col - temp.Length, row);
                         temp += cur_symbol;
                         type = CTypes.Keyword;
                     }
@@ -60,17 +70,18 @@ namespace lecser.app_code
                         {
                             if (IsComment(temp + cur_symbol))//проверяем на возможность коентария
                             {
-                                DefineWord(temp + cur_symbol, type, acsiiCode);//если коментарий то записываем в таблицу
+                                DefineWord(temp + cur_symbol, type, acsiiCode, col - temp.Length, row);//если коментарий то записываем в таблицу
 
                                 do
                                 {
                                     cur_symbol = (char)text.Read();
+                                    col++;
                                 } while (cur_symbol != '*');//игнорируем вунтри клментария
 
                                 temp += cur_symbol;
                                 cur_symbol = (char)text.Read();
                                 if (IsComment(temp + cur_symbol))
-                                    DefineWord(temp + cur_symbol, type, acsiiCode);
+                                    DefineWord(temp + cur_symbol, type, acsiiCode, col - temp.Length, row);
                                 else
                                 {
                                     Error();//ошибка елли коментрарий не закрыт
@@ -80,22 +91,23 @@ namespace lecser.app_code
                             }
                             else
                             {
-                                DefineWord(temp, type, acsiiCode);
+                                DefineWord(temp, type, acsiiCode, col - temp.Length, row);
+                                
                                 temp += cur_symbol;
                             }
                         }
                         else
                         {
-                            DefineWord(temp, type, acsiiCode);
+                            DefineWord(temp, type, acsiiCode, col - temp.Length, row);
                             temp += cur_symbol;
                             type = CTypes.Delimetr;
                         }
                         break;
                     }
                 }
-                if ((!IsLetterOrNum(acsiiCode)) && !IsDelimetr(cur_symbol))//если не буква и не делиметр
+                if ((!IsLetterOrNum(acsiiCode)) && !IsDelimetr(cur_symbol) && temp != null)//если не буква и не делиметр
                 {
-                    DefineWord(temp, type, acsiiCode);
+                    DefineWord(temp, type, acsiiCode, col - temp.Length, row);
                     if (cur_symbol != '\r' && cur_symbol != '\n')//если символ не входит в граматику - ошибка
                     {
                         Error();
@@ -108,11 +120,11 @@ namespace lecser.app_code
         }
 
 
-        public void DefineWord(string word, CTypes type, int code)
+        public void DefineWord(string word, CTypes type, int code, int col, int row)
         {
             if (temp == null) return;
             code = GetCode(type, code);
-            var l_word = new Word(code, word);
+            var l_word = new Word(code, word, col,row);
             temp = null;
             if (type == CTypes.Keyword)//добавляем в таблицу если ключевое слово
             {
@@ -169,15 +181,15 @@ namespace lecser.app_code
             Console.WriteLine("зарезервированые слова");
             var i = 0;
             foreach (var item in ReservedT)
-                Console.WriteLine(++i + ": " + item.name);
+                Console.WriteLine(++i + ": " + "[" + item.row + ", " + item.col + "] <" + item.code +"> "+ item.name);
             Console.WriteLine("\n делиметры");
             i = 0;
             foreach (var item in DelimetrT)
-                Console.WriteLine(++i + ": " + item.name);
+                Console.WriteLine(++i + ": " + "[" + item.row + ", " + item.col + "] <" + item.code + "> " + item.name);
             Console.WriteLine("\n идентификаторы");
             i = 0;
             foreach (var item in IdentifierT)
-                Console.WriteLine(++i + ": " + item.name);
+                Console.WriteLine(++i + ": " + "[" + item.row + ", " + item.col + "] <" + item.code + "> " + item.name);
             i = 0;
             Console.WriteLine("\n закодированое");
             foreach (var item in CodeT)
@@ -255,7 +267,7 @@ namespace lecser.app_code
     public interface IAnalizator
     {
         void Analize(StreamReader text);
-        void DefineWord(string word, CTypes type, int acsiiCode);
+        void DefineWord(string word, CTypes type, int acsiiCode, int col, int row);
         void PrintTables();
     }
 }
