@@ -10,7 +10,7 @@ namespace lecser.app_code
     {
         static CTypes type;
         static string temp;//временная 
-        int col, row=1;
+        int col, row = 1;
         int keywordCount = 1, identifCount = 1;
         public List<Word> IdentifierT = new List<Word>();//таблица идентификаторов 
         public List<Word> ConstantT = new List<Word>();//таблица констант  
@@ -24,11 +24,11 @@ namespace lecser.app_code
             {
                 start:
                 var cur_symbol = (char)text.Read();
-                
+
                 var acsiiCode = (int)cur_symbol;
                 if (cur_symbol == ' ')
                 {
-                    DefineWord(temp, type, acsiiCode, col - temp.Length+1, row);
+                    DefineWord(temp, type, acsiiCode, col - temp.Length + 1, row);
                     goto start;
                 }
                 col++;
@@ -37,8 +37,6 @@ namespace lecser.app_code
                     col = 0;
                     row++;
                 }
-                
-
                 if (IsLetterOrNum(acsiiCode))// если буква
                 {
                     if (temp == null)
@@ -57,52 +55,58 @@ namespace lecser.app_code
                         type = CTypes.Keyword;
                     }
                 }
-                foreach (var delim in Resource.delimiters)// если симаол делисметров
+                // если симаол делисметров
+                if (IsDelimetr(cur_symbol))
                 {
-                    if (delim == cur_symbol)
+                    if (temp == null)
                     {
-                        if (temp == null)
+                        temp += cur_symbol;
+                        type = CTypes.Delimetr;
+                    }
+                    else if (type == CTypes.Delimetr)
+                    {
+                        if (IsComment(temp + cur_symbol))//проверяем на возможность коентария
                         {
-                            temp += cur_symbol;
-                            type = CTypes.Delimetr;
-                        }
-                        else if (type == CTypes.Delimetr)
-                        {
-                            if (IsComment(temp + cur_symbol))//проверяем на возможность коентария
+                            DefineWord(temp + cur_symbol, type, acsiiCode, col - temp.Length, row);//если коментарий то записываем в таблицу
+                            start_COM:
+                            do
                             {
-                                DefineWord(temp + cur_symbol, type, acsiiCode, col - temp.Length, row);//если коментарий то записываем в таблицу
-
-                                do
-                                {
-                                    cur_symbol = (char)text.Read();
-                                    col++;
-                                } while (cur_symbol != '*');//игнорируем вунтри клментария
-
-                                temp += cur_symbol;
                                 cur_symbol = (char)text.Read();
-                                if (IsComment(temp + cur_symbol))
-                                    DefineWord(temp + cur_symbol, type, acsiiCode, col - temp.Length, row);
-                                else
+                                if(cur_symbol == '\uffff')
                                 {
-                                    Error();//ошибка елли коментрарий не закрыт
                                     return;
                                 }
-                                goto start;
+                                    
+                                col++;
+                            } while (cur_symbol != '*');//игнорируем вунтри клментария
+
+                            temp += cur_symbol;
+                            cur_symbol = (char)text.Read();
+                            if (IsComment(temp + cur_symbol))
+                            {
+                                DefineWord(temp + cur_symbol, type, acsiiCode, col - temp.Length, row);
                             }
                             else
                             {
-                                DefineWord(temp, type, acsiiCode, col - temp.Length, row);
-                                
-                                temp += cur_symbol;
+                                temp = null;
+                                goto start_COM;
+                                cur_symbol = (char)text.Read();
+                                Error();//ошибка елли коментрарий не закрыт
                             }
+                            goto start;
                         }
                         else
                         {
                             DefineWord(temp, type, acsiiCode, col - temp.Length, row);
+
                             temp += cur_symbol;
-                            type = CTypes.Delimetr;
                         }
-                        break;
+                    }
+                    else
+                    {
+                        DefineWord(temp, type, acsiiCode, col - temp.Length, row);
+                        temp += cur_symbol;
+                        type = CTypes.Delimetr;
                     }
                 }
                 if ((!IsLetterOrNum(acsiiCode)) && !IsDelimetr(cur_symbol) && temp != null)//если не буква и не делиметр
@@ -110,21 +114,19 @@ namespace lecser.app_code
                     DefineWord(temp, type, acsiiCode, col - temp.Length, row);
                     if (cur_symbol != '\r' && cur_symbol != '\n')//если символ не входит в граматику - ошибка
                     {
-                        Error();
-                        return;
+                        UnexpectedToken(cur_symbol,row,col);
                     }
                 }
-
             }
-
         }
 
 
         public void DefineWord(string word, CTypes type, int code, int col, int row)
         {
-            if (temp == null) return;
+            if (temp == null)
+                return;
             code = GetCode(type, code);
-            var l_word = new Word(code, word, col,row);
+            var l_word = new Word(code, word, col, row);
             temp = null;
             if (type == CTypes.Keyword)//добавляем в таблицу если ключевое слово
             {
@@ -145,7 +147,39 @@ namespace lecser.app_code
                         return;
                     }
                     else
+                    {
                         type = CTypes.Identifier;//если слово не заресервированое то считаем его идентификаторо 
+                        if (Char.IsDigit(l_word.name.First()))
+                        {
+                            var l_constant = "";
+                            var l_identif = "";
+                            for (var i = 0; i < l_word.name.Length; i++)
+                            {
+                                if (Char.IsDigit(l_word.name[i]))
+                                {
+                                    l_constant += l_word.name[i];
+                                }
+                                else
+                                {
+                                    do
+                                    {
+                                        i++;
+                                        l_identif += l_word.name[i];
+                                    } while (IsLetter(l_word.name[i]));
+                                    break;
+                                }
+                            }
+
+                            var constant_word = new Word(code, l_constant, col, row);
+                            ConstantT.Add(constant_word);
+                            var identif_word = new Word(code, l_identif, col+ l_constant.Length, row);
+                            IdentifierT.Add(identif_word);
+                            FillCodeT(constant_word);
+                            FillCodeT(identif_word);
+                            Console.WriteLine("[" + l_word.row + "," + l_word.col + "] '" + l_word.name + "' ERROR : Unexpected token (started from num)");
+                            return;
+                        }
+                    }
                 }
             }
             switch (type)
@@ -181,7 +215,7 @@ namespace lecser.app_code
             Console.WriteLine("зарезервированые слова");
             var i = 0;
             foreach (var item in ReservedT)
-                Console.WriteLine(++i + ": " + "[" + item.row + ", " + item.col + "] <" + item.code +"> "+ item.name);
+                Console.WriteLine(++i + ": " + "[" + item.row + ", " + item.col + "] <" + item.code + "> " + item.name);
             Console.WriteLine("\n делиметры");
             i = 0;
             foreach (var item in DelimetrT)
@@ -190,6 +224,11 @@ namespace lecser.app_code
             i = 0;
             foreach (var item in IdentifierT)
                 Console.WriteLine(++i + ": " + "[" + item.row + ", " + item.col + "] <" + item.code + "> " + item.name);
+            i = 0;
+            Console.WriteLine("\n констант");
+            foreach (var item in ConstantT)
+                Console.WriteLine(++i + ": " + "[" + item.row + ", " + item.col + "] <" + item.code + "> " + item.name);
+
             i = 0;
             Console.WriteLine("\n закодированое");
             foreach (var item in CodeT)
@@ -200,9 +239,12 @@ namespace lecser.app_code
 
         private void Error()
         {
-            Console.WriteLine("ERROR");
+            Console.WriteLine("ERROR" + "'"+ "'" + "[" + row + "," + col + "] " + "EXPECTED TOKEN ')'");
         }
-
+        private void UnexpectedToken(char c, int row, int col)
+        {
+            Console.WriteLine( "ERROR" + "'" +c+ "'" +"["+row+","+col+"] " + "UNEXPECTED TOKEN");
+        }
         private bool IsNumber(int acsiiCode)
         {
             return ((acsiiCode >= 48) && (acsiiCode <= 57)) ? true : false;
@@ -211,6 +253,12 @@ namespace lecser.app_code
         private bool IsLetterOrNum(int acsiiCode)
         {
             return ((acsiiCode >= 65) && (acsiiCode <= 90)) || ((acsiiCode >= 97) && (acsiiCode <= 122) || ((acsiiCode >= 48) && (acsiiCode <= 57))) ? true : false;
+        }
+
+        private bool IsNumber(string str)
+        {
+            var temp = (char)str[0];
+            return ((temp >= 48) && (temp <= 57)) ? true : false;
         }
 
         private bool IsDelimetr(char c)
@@ -225,6 +273,10 @@ namespace lecser.app_code
             return false;
         }
 
+        private bool IsLetter(int acsiiCode)
+        {
+            return ((acsiiCode >= 65) && (acsiiCode <= 90)) || ((acsiiCode >= 97) && (acsiiCode <= 122)) ? true : false;
+        }
 
 
         private bool IsComment(string delimetr)
