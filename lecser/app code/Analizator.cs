@@ -16,29 +16,29 @@ namespace lecser.app_code
         public List<Word> ConstantT = new List<Word>();//таблица констант  
         public List<Word> DelimetrT = new List<Word>();//таблица делиметров
         public List<Word> ReservedT = new List<Word>();//таблица зарезервированых слов
-        public List<int> CodeT = new List<int>();
+        public List<Word> CodeT = new List<Word>();
 
-        public void Analize(StreamReader text)
+        public void Analyze(StreamReader text)
         {
             while (text.Peek() >= 0)
             {
-                start:
                 var cur_symbol = (char)text.Read();
-
+                start:
+                col++;
                 var acsiiCode = (int)cur_symbol;
-                if (cur_symbol == ' ')
+                if (cur_symbol == ' ' && temp != null)
                 {
-                    DefineWord(temp, type, acsiiCode, col - temp.Length + 1, row);
+                    DefineWord(temp, type, acsiiCode, col - temp.Length, row);
                     goto start;
                 }
-                col++;
+               
                 if (cur_symbol == '\n')
                 {
                     col = 0;
                     row++;
                 }
                 if (IsLetterOrNum(acsiiCode))// если буква
-                {
+                {  
                     if (temp == null)
                     {
                         temp += cur_symbol;
@@ -48,15 +48,15 @@ namespace lecser.app_code
                     {
                         temp += cur_symbol;
                     }
-                    else
+                    else if (type == CTypes.Delimetr)
                     {
-                        DefineWord(temp, type, acsiiCode, col - temp.Length, row);
+                        DefineWord(temp, type, (int)temp[0], col - temp.Length+1, row);
                         temp += cur_symbol;
                         type = CTypes.Keyword;
                     }
                 }
                 // если симаол делисметров
-                if (IsDelimetr(cur_symbol))
+                if (IsDelimetr(cur_symbol) || IsComment(temp + cur_symbol))
                 {
                     if (temp == null)
                     {
@@ -65,57 +65,59 @@ namespace lecser.app_code
                     }
                     else if (type == CTypes.Delimetr)
                     {
-                        if (IsComment(temp + cur_symbol))//проверяем на возможность коентария
+                        if (IsComment(temp + cur_symbol))//проверяем на возможность коментария
                         {
-                            DefineWord(temp + cur_symbol, type, acsiiCode, col - temp.Length, row);//если коментарий то записываем в таблицу
+                            temp = null;
+                           // DefineWord(temp + cur_symbol, type, acsiiCode, col - temp.Length, row);//если коментарий то записываем в таблицу
                             start_COM:
                             do
                             {
                                 cur_symbol = (char)text.Read();
-                                if(cur_symbol == '\uffff')
+                                col++;
+                                if (cur_symbol == '\uffff')
                                 {
+                                    Console.WriteLine("ERROR not closed comment");
                                     return;
                                 }
-                                    
-                                col++;
                             } while (cur_symbol != '*');//игнорируем вунтри клментария
 
                             temp += cur_symbol;
                             cur_symbol = (char)text.Read();
+                            col++;
                             if (IsComment(temp + cur_symbol))
-                            {
-                                DefineWord(temp + cur_symbol, type, acsiiCode, col - temp.Length, row);
+                            { 
+                                temp = null;
+                                cur_symbol = ' ';
+                                goto start;
                             }
                             else
                             {
                                 temp = null;
                                 goto start_COM;
-                                cur_symbol = (char)text.Read();
-                                Error();//ошибка елли коментрарий не закрыт
                             }
-                            goto start;
                         }
                         else
                         {
                             DefineWord(temp, type, acsiiCode, col - temp.Length, row);
-
                             temp += cur_symbol;
                         }
                     }
                     else
                     {
-                        DefineWord(temp, type, acsiiCode, col - temp.Length, row);
-                        temp += cur_symbol;
-                        type = CTypes.Delimetr;
+                            DefineWord(temp, type, acsiiCode, col - temp.Length, row);
+                            temp += cur_symbol;
+                            type = CTypes.Delimetr;
+                        
                     }
                 }
                 if ((!IsLetterOrNum(acsiiCode)) && !IsDelimetr(cur_symbol) && temp != null)//если не буква и не делиметр
                 {
-                    DefineWord(temp, type, acsiiCode, col - temp.Length, row);
-                    if (cur_symbol != '\r' && cur_symbol != '\n')//если символ не входит в граматику - ошибка
-                    {
-                        UnexpectedToken(cur_symbol,row,col);
-                    }
+                        DefineWord(temp, type, acsiiCode, col - temp.Length, row);
+
+                        if (cur_symbol != '\r' && cur_symbol != '\n')//если символ не входит в граматику - ошибка
+                        {
+                            UnexpectedToken(cur_symbol, row, col);
+                        }
                 }
             }
         }
@@ -138,12 +140,13 @@ namespace lecser.app_code
                         {
                             if (word == ReservedT[i].name)
                             {
-                                return;
+                                l_word.code = ReservedT[i].code;
+                                goto fillcode_keyword;
                             }
                         }
                         l_word.code = GetCode(type, code);
                         ReservedT.Add(l_word);
-                        FillCodeT(l_word);
+                        fillcode_keyword: FillCodeT(l_word);
                         return;
                     }
                     else
@@ -189,22 +192,26 @@ namespace lecser.app_code
                     {
                         if (word == IdentifierT[j].name)
                         {
+                            l_word.code = IdentifierT[j].code;
+                            FillCodeT(l_word);
                             return;
                         }
                     }
-                    FillCodeT(l_word);
                     IdentifierT.Add(l_word);
+                    FillCodeT(l_word);
                     break;
                 case CTypes.Delimetr://добавляем делиметры
                     for (int j = 0; j < DelimetrT.Count; j++)
                     {
                         if (word == DelimetrT[j].name)
                         {
+                            l_word.code = DelimetrT[j].code;
+                            FillCodeT(l_word);
                             return;
                         }
                     }
-                    FillCodeT(l_word);
                     DelimetrT.Add(l_word);
+                    FillCodeT(l_word);
                     break;
             }
             return;
@@ -212,27 +219,28 @@ namespace lecser.app_code
 
         public void PrintTables()
         {
-            Console.WriteLine("зарезервированые слова");
+            Console.WriteLine("\n RESERVED WORDS");
             var i = 0;
             foreach (var item in ReservedT)
                 Console.WriteLine(++i + ": " + "[" + item.row + ", " + item.col + "] <" + item.code + "> " + item.name);
-            Console.WriteLine("\n делиметры");
+            Console.WriteLine("\n DELIMETERS");
             i = 0;
             foreach (var item in DelimetrT)
                 Console.WriteLine(++i + ": " + "[" + item.row + ", " + item.col + "] <" + item.code + "> " + item.name);
-            Console.WriteLine("\n идентификаторы");
+            Console.WriteLine("\n IDENTIFIERS");
             i = 0;
             foreach (var item in IdentifierT)
                 Console.WriteLine(++i + ": " + "[" + item.row + ", " + item.col + "] <" + item.code + "> " + item.name);
             i = 0;
-            Console.WriteLine("\n констант");
+            Console.WriteLine("\n CONSTANTS");
             foreach (var item in ConstantT)
                 Console.WriteLine(++i + ": " + "[" + item.row + ", " + item.col + "] <" + item.code + "> " + item.name);
 
             i = 0;
-            Console.WriteLine("\n закодированое");
+            Console.WriteLine("\n CODED");
             foreach (var item in CodeT)
-                Console.Write(" " + item);
+                Console.WriteLine("[" + item.row+"]"+"["+item.col+"]"+"<"+item.code+">"+
+                    "('"+ item.name + "')");
         }
 
         #region private methods
@@ -241,10 +249,12 @@ namespace lecser.app_code
         {
             Console.WriteLine("ERROR" + "'"+ "'" + "[" + row + "," + col + "] " + "EXPECTED TOKEN ')'");
         }
+
         private void UnexpectedToken(char c, int row, int col)
         {
             Console.WriteLine( "ERROR" + "'" +c+ "'" +"["+row+","+col+"] " + "UNEXPECTED TOKEN");
         }
+
         private bool IsNumber(int acsiiCode)
         {
             return ((acsiiCode >= 48) && (acsiiCode <= 57)) ? true : false;
@@ -278,7 +288,6 @@ namespace lecser.app_code
             return ((acsiiCode >= 65) && (acsiiCode <= 90)) || ((acsiiCode >= 97) && (acsiiCode <= 122)) ? true : false;
         }
 
-
         private bool IsComment(string delimetr)
         {
             foreach (var delim in Resource.multi_delimiters)
@@ -308,7 +317,7 @@ namespace lecser.app_code
 
         private void FillCodeT(Word word)
         {
-            CodeT.Add(word.code);
+            CodeT.Add(word);
         }
 
         #endregion
@@ -318,7 +327,7 @@ namespace lecser.app_code
 
     public interface IAnalizator
     {
-        void Analize(StreamReader text);
+        void Analyze(StreamReader text);
         void DefineWord(string word, CTypes type, int acsiiCode, int col, int row);
         void PrintTables();
     }
