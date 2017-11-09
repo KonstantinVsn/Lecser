@@ -6,7 +6,7 @@ using System.Text;
 
 namespace lecser.app_code
 {
-    public class Analizator : IAnalizator
+    public class LexAnalizator : IAnalizator
     {
         static CTypes type;
         static string temp;//временная 
@@ -18,7 +18,7 @@ namespace lecser.app_code
         public List<Word> ReservedT = new List<Word>();//таблица зарезервированых слов
         public List<Word> CodeT = new List<Word>();
 
-        public void Analyze(StreamReader text)
+        public List<Word> Analyze(StreamReader text)
         {
             while (text.Peek() >= 0)
             {
@@ -77,7 +77,7 @@ namespace lecser.app_code
                                 if (cur_symbol == '\uffff')
                                 {
                                     Console.WriteLine("ERROR not closed comment");
-                                    return;
+                                    return null;
                                 }
                             } while (cur_symbol != '*');//игнорируем вунтри клментария
 
@@ -120,6 +120,7 @@ namespace lecser.app_code
                         }
                 }
             }
+            return CodeT;
         }
 
 
@@ -327,7 +328,7 @@ namespace lecser.app_code
 
     public interface IAnalizator
     {
-        void Analyze(StreamReader text);
+        List<Word> Analyze(StreamReader text);
         void DefineWord(string word, CTypes type, int acsiiCode, int col, int row);
         void PrintTables();
     }

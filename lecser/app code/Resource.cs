@@ -12,7 +12,16 @@ namespace lecser.app_code
         public static string[] multi_delimiters = { "(*", "*)" };
         public static string[] reservedWords = { "PROGRAM", "PROCEDURE", "INTEGER", "EXT", "FLOAT", "BLOCKFLOAT", "EXT",
                                              "SIGNAL", "NO", "ATTR ", "BEGIN","ALWAYSE","EMPTY", "END" };
-        public static string[] Identificators = { "SOMEPROG", "PARAMETER1", "PARAMETER2", "PROCEDURE1", "PROCEDURE3",  "PARAMETER3",
-                                            "PARAMETER4", "PROCEDURE2", "PARAMETER21", "PARAMETER22", "PARAMETER23" };
+
+        public const int DELIMITERS_FROM = 0;
+        public const int DELIMITERS_TO = 256;
+        public const int MULTIPLE_DELIMITERS_FROM = 301;
+        public const int MULTIPLE_DELIMITERS_TO = 400;
+        public const int KEYS_FROM = 401;
+        public const int KEYS_TO = 500;
+        public const int CONSTANTS_FROM = 501;
+        public const int CONSTANTS_TO = 1000;
+        public const int IDENTIFIERS_FROM = 1001;
+        public const int IDENTIFIERS_TO = 2000;
     }
 }

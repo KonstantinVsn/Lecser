@@ -15,6 +15,10 @@ namespace lecser.app_code
             this.col = col;
             this.row = row;
         }
+        public Word()
+        {
+
+        }
         public int code { get; set; }
 
         public int row { get; set; }
