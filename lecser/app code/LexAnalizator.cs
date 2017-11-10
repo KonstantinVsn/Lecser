@@ -11,7 +11,8 @@ namespace lecser.app_code
         static CTypes type;
         static string temp;//временная 
         int col, row = 1;
-        int keywordCount = 1, identifCount = 1;
+        int acsiiCode = 0;
+        int keywordCount = 1, identifCount = 1, delimetersCount =1, constantsCount = 1;
         public List<Word> IdentifierT = new List<Word>();//таблица идентификаторов 
         public List<Word> ConstantT = new List<Word>();//таблица констант  
         public List<Word> DelimetrT = new List<Word>();//таблица делиметров
@@ -25,7 +26,7 @@ namespace lecser.app_code
                 var cur_symbol = (char)text.Read();
                 start:
                 col++;
-                var acsiiCode = (int)cur_symbol;
+                acsiiCode = (int)cur_symbol;
                 if (cur_symbol == ' ' && temp != null)
                 {
                     DefineWord(temp, type, acsiiCode, col - temp.Length, row);
@@ -120,6 +121,8 @@ namespace lecser.app_code
                         }
                 }
             }
+            if(temp != null)
+                DefineWord(temp, type, acsiiCode, col - temp.Length, row);
             return CodeT;
         }
 
@@ -142,10 +145,11 @@ namespace lecser.app_code
                             if (word == ReservedT[i].name)
                             {
                                 l_word.code = ReservedT[i].code;
+                                l_word.code = GetCode(CTypes.Keyword, code);
                                 goto fillcode_keyword;
                             }
                         }
-                        l_word.code = GetCode(type, code);
+                        l_word.code = GetCode(CTypes.Keyword, code);
                         ReservedT.Add(l_word);
                         fillcode_keyword: FillCodeT(l_word);
                         return;
@@ -178,7 +182,9 @@ namespace lecser.app_code
                             ConstantT.Add(constant_word);
                             var identif_word = new Word(code, l_identif, col+ l_constant.Length, row);
                             IdentifierT.Add(identif_word);
+                            l_word.code = GetCode(CTypes.Constant, constant_word.code);
                             FillCodeT(constant_word);
+                            l_word.code = GetCode(CTypes.Identifier, identif_word.code);
                             FillCodeT(identif_word);
                             Console.WriteLine("[" + l_word.row + "," + l_word.col + "] '" + l_word.name + "' ERROR : Unexpected token (started from num)");
                             return;
@@ -189,6 +195,7 @@ namespace lecser.app_code
             switch (type)
             {
                 case CTypes.Identifier: //добавляем идентфикаторы
+                    l_word.code = GetCode(CTypes.Identifier, code);
                     for (int j = 0; j < IdentifierT.Count; j++)
                     {
                         if (word == IdentifierT[j].name)
@@ -202,6 +209,7 @@ namespace lecser.app_code
                     FillCodeT(l_word);
                     break;
                 case CTypes.Delimetr://добавляем делиметры
+                    l_word.code = GetCode(CTypes.Delimetr, code);
                     for (int j = 0; j < DelimetrT.Count; j++)
                     {
                         if (word == DelimetrT[j].name)
@@ -305,13 +313,23 @@ namespace lecser.app_code
         {
             if (type == CTypes.Keyword)
             {
-                code = 399 + keywordCount;
+                code = Resource.KEYS_FROM + keywordCount;
                 keywordCount++;
             }
             if (type == CTypes.Identifier)
             {
-                code = 1000 + identifCount;
+                code = Resource.IDENTIFIERS_FROM + identifCount;
                 identifCount++;
+            }
+            if (type == CTypes.Constant)
+            {
+                code = Resource.CONSTANTS_FROM + constantsCount;
+                constantsCount++;
+            }
+            if (type == CTypes.Delimetr)
+            {
+                code = Resource.DELIMITERS_FROM + delimetersCount ;
+                delimetersCount++;
             }
             return code;
         }

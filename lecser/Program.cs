@@ -12,9 +12,12 @@ namespace lecser
         {
             var path = "D:/5 курс/compilathor/_lecser/lecser/app data/input.txt";
             var _input = Loader.Load(path);
-            var analizator = new LexAnalizator();
-            var codedT = analizator.Analyze(_input);
-            analizator.PrintTables();
+            var lAnalizator = new LexAnalizator();
+            var codedT = lAnalizator.Analyze(_input);
+            lAnalizator.PrintTables();
+            Console.WriteLine("=====================Lexical analyze=======================\n");
+            var sAnalizator = new SyntaxAnalyze(codedT);
+            sAnalizator.Analyze();
             Console.ReadKey();
             _input.Close();
         }
