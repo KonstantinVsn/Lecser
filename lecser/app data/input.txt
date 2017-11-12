@@ -1,5 +1,3 @@
 ﻿PROGRAM program1;
 PROCEDURE procedure1 ();
-BEGIN
-END;
 (*PROCEDURE SPROCEDURE1 analyze;*)

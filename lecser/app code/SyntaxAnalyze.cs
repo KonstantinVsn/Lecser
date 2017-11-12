@@ -23,15 +23,17 @@ namespace lecser.app_code
             logging(depth, "<signal-program>");
             if (input[index].name == "PROGRAM")
             {
+
                 index++;
                 logging(depth + currdepth, "<program>");
+                logging(depth + currdepth + 1, "PROGRAM");
                 if (IsPocedireIdentifier(input[index]))
                 {
-                   
+
                     index++;
                     if (input[index].name == IsDelimReserved(";"))
                     {
-                        logging(depth + currdepth + 4, input[index].name);
+                        logging(depth + currdepth + 2, input[index].name);
                         index++;
                         currdepth++;
                         if (IsBlock(input[index], input[index + 1]))
@@ -50,13 +52,13 @@ namespace lecser.app_code
                                 goto print;
                             }
                         }
-                        
+
                         if (IsProcedure(input[index]))
                         {
                             goto print;
                         }
 
-                        Error(depth, "(!) expected '<block>' or PROCEDURE, but has " + input[index]);
+
                     }
                     else
                         Error(depth, "(!) expected ';', but has " + input[index + 2]);
@@ -65,7 +67,7 @@ namespace lecser.app_code
                     goto print;
             }
             else
-                Error(depth, "(!) expected '<block>' or PROCEDURE, but has " + input[index]);
+                Error(depth, "(!) expected 'BEGIN' or 'PROCEDURE', but has end of file");
 
             print: PrettyPrint();
             return true;
@@ -76,10 +78,11 @@ namespace lecser.app_code
             if (begin.name == "BEGIN")
             {
                 index++;
-                if (end.name == "END") { 
+                if (end.name == "END")
+                {
                     logging(depth + currdepth + 1, "<block>");
                     logging(depth + currdepth + 2, begin.name);
-                    logging(depth + currdepth + 3, "<statement-list>");
+                    logging(depth + currdepth + 3, "<statements-list>");
                     logging(depth + currdepth + 4, "<empty>");
                     logging(depth + currdepth + 2, end.name);
                     index++;
@@ -92,7 +95,7 @@ namespace lecser.app_code
                 return false;
             }
             return false;
-            
+
 
         }
 
@@ -112,14 +115,20 @@ namespace lecser.app_code
                         {
                             logging(depth + currdepth + 1, input[index].name);
                             index++;
-                            if (IsBlock(input[index], input[index+1]))
+                            if (input.Count > index)
                             {
-                                if (input[index].name == IsDelimReserved(";"))
+                                if (IsBlock(input[index], input[index + 1]))
                                 {
-                                    logging(depth + currdepth + 1, input[index].name);
-                                    return true;
+                                    if (input[index].name == IsDelimReserved(";"))
+                                    {
+                                        logging(depth + currdepth + 1, input[index].name);
+                                        return true;
+                                    }
                                 }
-                                    
+                            }
+                            else
+                            {
+                                Error(depth + 3, "expected 'BEGIN', but has end of file");
                             }
                         }
                     }
@@ -135,12 +144,12 @@ namespace lecser.app_code
             logging(depth + currdepth + 2, "<procedure-identifier>");
             if (IsIdentifier(lecsem))
             {
-                logging(depth + currdepth + 2, lecsem.name);
+                logging(depth + currdepth + 4, lecsem.name);
                 return true;
             }
             else
             {
-                Error(depth+3, "expected '<identifier>', but has " + lecsem.name);
+                Error(depth + 3, "expected '<identifier>', but has " + lecsem.name);
             }
             return false;
         }
@@ -156,7 +165,7 @@ namespace lecser.app_code
 
         public static bool IsParametrList(Word lecsem)
         {
-            logging(depth + currdepth+ 2, "<parametr-list>");
+            logging(depth + currdepth + 2, "<parameters-list>");
             if (input[index].name == IsDelimReserved("("))
             {
                 index++;
@@ -180,14 +189,14 @@ namespace lecser.app_code
             {
                 Error(depth + 3, "expected '(', but has " + input[index].name);
             }
-            
+
             return false;
         }
         public static bool IsIdentifier(Word lecsem)
         {
             if (lecsem.code >= Resource.IDENTIFIERS_FROM && lecsem.code <= Resource.IDENTIFIERS_TO)
             {
-                logging(depth + currdepth + 3, "identifier>");
+                logging(depth + currdepth + 3, "<identifier>");
                 return true;
             }
             return false;
@@ -258,7 +267,7 @@ namespace lecser.app_code
 
         public static bool IsDeclarationList(Word lecsem)
         {
-            logging(depth + currdepth + 4, "<declaration-list");
+            logging(depth + currdepth + 4, "<declarations-list>");
             if (input[index].name == ")")
             {
                 Empty(depth + currdepth + 5);//todo current depth
@@ -289,17 +298,37 @@ namespace lecser.app_code
         }
         public static void PrettyPrint()
         {
-
-            var dep = 1;
             foreach (var node in log)
             {
-            Console.WriteLine(GetDepth(node.Item1) + node.Item2);
+                SetColor(ConsoleColor.DarkGray);
+                Console.Write(GetDepth(node.Item1));
+                SetColor(node.Item2);
+                Console.Write(node.Item2 + '\n');
+            }
         }
+
+        public static void SetColor(ConsoleColor color)
+        {
+            Console.ForegroundColor = color;
+        }
+
+        public static void SetColor(string rule)
+        {
+            if (!Resource.rules.Contains(rule))
+            {
+                Console.ForegroundColor = ConsoleColor.DarkGreen;
+            }
+            else
+                Console.ForegroundColor = ConsoleColor.DarkGray;
+            if (rule.Contains("expected"))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+            }
         }
         public static string GetDepth(int depth)
         {
             var dep = "";
-            for (int i = 0; i < depth*2; i++)
+            for (int i = 0; i < depth; i++)
             {
                 dep += "| ";
             }

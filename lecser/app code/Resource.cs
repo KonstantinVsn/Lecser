@@ -13,6 +13,9 @@ namespace lecser.app_code
         public static string[] reservedWords = { "PROGRAM", "PROCEDURE", "INTEGER", "EXT", "FLOAT", "BLOCKFLOAT",
                                              "SIGNAL", "NO", "ATTR ", "BEGIN","ALWAYSE","EMPTY", "END", "COMPLEX" };
 
+        public static string[] rules = { "<signal-program>", "<program>", "<procedure-identifier>", "<procedure-identifier>", "<parameters-list>",
+            "<block>", "<statements-list>", "<empty>", "<declarations-list>", "<declaration>", "<variable-identifier>", "<identifiers-list>", "<attribute>",
+            "<attributes-list>","<identifier>"};
         public static string[] attributes = { "EXT", "FLOAT", "BLOCKFLOAT", "SIGNAL", "COMPLEX","INTEGER" };
         public const int DELIMITERS_FROM = 0;
         public const int DELIMITERS_TO = 256;
