@@ -22,20 +22,18 @@ namespace lecser.app_code
         public bool Analyze()
         {
             logging(depth, "<signal-program>");
+            TreeNode<string> programNode = treeRoot.AddChild("<program>");
             if (input[index].name == "PROGRAM")
             {
-
                 index++;
-                //logging(depth + currdepth, "<program>");
-                TreeNode<string> programNode = treeRoot.AddChild("<program>");
-                //logging(depth + currdepth + 1, "PROGRAM");
+                
                 TreeNode<string> programINode = programNode.AddChild("PROGRAM");
                 if (IsPocedireIdentifier(input[index], programINode))
                 {
                     index++;
                     if (input[index].name == IsDelimReserved(";"))
                     {
-                        //logging(depth + currdepth + 2, input[index].name);
+
                         programINode.AddChild(input[index].name);
                         index++;
                         currdepth++;
@@ -46,13 +44,13 @@ namespace lecser.app_code
                                 if (input[index + 2].name == IsDelimReserved("."))
                                 {
                                     programINode.AddChild(input[index + 2].name);
-                                    logging(depth + 2, input[index + 2].name);
+                                    //logging(depth + 2, input[index + 2].name);
                                     goto print;
                                 }
                             }
                             else
                             {
-                                Error(depth + 2, "(!) expected '.', but has end of file");
+                                programINode.AddChild("(!) expected '.', but has end of file");
                                 goto print;
                             }
                         }
@@ -61,30 +59,32 @@ namespace lecser.app_code
                         {
                             goto print;
                         }
-
-
                     }
                     else
-                        Error(depth, "(!) expected ';', but has " + input[index + 2]);
+                        programNode.AddChild("(!) expected ';', but has " + input[index + 2]);
                 }
                 else
                     goto print;
             }
             else
-                Error(depth, "(!) expected 'BEGIN' or 'PROCEDURE', but has end of file");
+                programNode.AddChild("(!) expected 'BEGIN' or 'PROCEDURE', but has end of file");
 
             print:
             PrintTree();
-            //PrettyPrint();
+             
             return true;
         }
 
-        public static bool IsBlock(Word begin, Word end, TreeNode<string> root)//not checking statement-list cource it is empty
+        public static bool IsBlock(Word begin, Word end, TreeNode<string> root)
         {
+            var blockNode = root.AddChild("<block>");
+            if(begin.name == "PROCEDURE")
+            {
+                return false;
+            }
             if (begin.name == "BEGIN")
             {
-                var blockNode = root.AddChild("<block>");
-                var beginNode = blockNode.AddChild("BAGIN");
+                var beginNode = blockNode.AddChild("BEGIN");
                 index++;
                 if (end.name == "END")
                 {
@@ -93,11 +93,13 @@ namespace lecser.app_code
                     blockNode.AddChild("END");
                     index++;
                 }
+                else
+                    blockNode.AddChild("(!) expected 'END', but has " + begin.name);
                 return true;
             }
             if (begin.name == "END")
             {
-                Error(depth, "(!) expected 'BEGIN', but has " + begin.name);
+                blockNode.AddChild("(!) expected 'BEGIN', but has " + begin.name);
                 return false;
             }
             return false;
@@ -108,7 +110,7 @@ namespace lecser.app_code
             if (lecsem.name == "PROCEDURE")
             {
                 var procedureNode = root.AddChild(lecsem.name);
-                //logging(depth + currdepth + 1, lecsem.name);
+                 
                 index++;
                 if (IsPocedireIdentifier(input[index], procedureNode))
                 {
@@ -118,16 +120,21 @@ namespace lecser.app_code
                         if (input[index].name == IsDelimReserved(";"))
                         {
                             procedureNode.AddChild(";");
-                            //logging(depth + currdepth + 1, input[index].name);
+                             
                             index++;
                             if (input.Count > index)
                             {
                                 if (IsBlock(input[index], input[index + 1], procedureNode))
                                 {
+                                    if(input.Count == index)
+                                    {
+                                        procedureNode.AddChild("expected ';', but has end of file");
+                                        return true;
+                                    }
                                     if (input[index].name == IsDelimReserved(";"))
                                     {
                                         procedureNode.AddChild(";");
-                                        //(depth + currdepth + 1, input[index].name);
+                                         
                                         return true;
                                     }
                                 }
@@ -139,9 +146,11 @@ namespace lecser.app_code
                             else
                             {
                                 procedureNode.AddChild("expected 'BEGIN', but has end of file");
-                               // Error(depth + 3, "expected 'BEGIN', but has end of file");
+                                
                             }
                         }
+                        else
+                            procedureNode.AddChild("expected ';', but has " + input[index].name);
                     }
                 }
             }
@@ -151,7 +160,7 @@ namespace lecser.app_code
         public static bool IsPocedireIdentifier(Word lecsem, TreeNode<string> root)
         {
             TreeNode<string> programINode = root.AddChild("<procedure-identifier>");
-            //logging(depth + currdepth + 2, "<procedure-identifier>");
+             
              return IsIdentifier(lecsem, programINode) ? true: false;
             
         }
@@ -167,39 +176,29 @@ namespace lecser.app_code
 
         public static bool IsParametrList(Word lecsem, TreeNode<string> root)
         {
-            //logging(depth + currdepth + 2, "<parameters-list>");
             var parametrListNode = root.AddChild("<parameters-list>");
             if (input[index].name == IsDelimReserved("("))
             {
                 index++;
                 var startDelaration = parametrListNode.AddChild("(");
-                //logging(depth + currdepth + 3, "(");
-
-
+                 
                 if (IsDeclarationList(input[index], startDelaration))
                 {
-                    if (input[index].name == IsDelimReserved(";"))
+                    if (input[index].name == IsDelimReserved(")"))
                     {
-                        //parametrListNode.AddChild(";");
+                        index++;
                         parametrListNode.AddChild(")");
-                        //logging(depth + currdepth + 3, ";");
-                        //if (IsBlock(input[index], input[index + 1])){
-                        return true;
-                        //}
-                        
-                        
+                        return true;                 
                     }
                 }
                 else
                 {
                     parametrListNode.AddChild("expected '<declaration-list>', but has " + input[index].name);
-                    //Error(depth + 3, "expected '<declaration-list>', but has " + input[index].name);
                 }
             }
             else
             {
                 root.AddChild("expected '(', but has " + input[index].name);
-                //Error(depth + 3, "expected '(', but has " + input[index].name);
             }
 
             return false;
@@ -209,7 +208,7 @@ namespace lecser.app_code
             TreeNode<string> programINode = root.AddChild("<identifier>");
             if (lecsem.code >= Resource.IDENTIFIERS_FROM && lecsem.code <= Resource.IDENTIFIERS_TO)
             {
-                // logging(depth + currdepth + depthin + 3, "<identifier>");
+                 
                 programINode.AddChild(lecsem.name);
                 return true;
             }
@@ -219,19 +218,20 @@ namespace lecser.app_code
                 return false;
             }
         }
+
         public static bool IsAttributeList(Word lecsem, TreeNode<string> root)
         {
             index++;
             var bufferNode = new TreeNode<string>("");
             var AttributeListNode = root.AddChild("<attributes-list>");
-            //logging(depth + currdepth + 4, "<attributes-list>");
+             
             if (IsAttribute(input[index], AttributeListNode))
             {
                 logging(depth + currdepth + 5, input[index].name);
                 if (IsAttributeList(input[index], AttributeListNode))
                     return true;
             }
-            else if (input[index].name == IsDelimReserved(")") && IsAttribute(input[index - 1], bufferNode))
+            else if (input[index].name == IsDelimReserved(";") && IsAttribute(input[index - 1], bufferNode))
             {
                 return true;
             }
@@ -241,18 +241,14 @@ namespace lecser.app_code
         public static bool IsAttribute(Word lecsem, TreeNode<string> root)
         {
             var attributeNode = root.AddChild("<attribute>");
-            //if (root.Children.Count == 1)
-            //{
-            //    attributeNode.AddChild("<empty>");
-            //    return true;
-            //}
+ 
             if (Resource.attributes.Contains(lecsem.name))
             {
                 
                 attributeNode.AddChild(lecsem.name);
                 return true;
             }
-            else if(lecsem.name == ")")
+            else if(lecsem.name == ";")
             {
                 if (root.Level > 2)
                 {
@@ -267,16 +263,14 @@ namespace lecser.app_code
         {
             index++;
             var bufferNode = new TreeNode<string>("");
-            //logging(depth +currdepth +6, "<identifiers-list>");
+             
             if (input[index].name == IsDelimReserved(","))
             {
                 var startIdentifListNode = idenListNode.AddChild(",");
-                //logging(depth + currdepth + 7, input[index].name);
+                 
                 index++;
                 if (IsVarIdentifier(input[index], idenListNode))
                 {
-                    //root.AddChild(input[index].name);
-                    //logging(depth + currdepth + 8, input[index].name);
                     return IsIdentifierList(input[index], idenListNode);
                 }
             }
@@ -287,46 +281,41 @@ namespace lecser.app_code
 
         public static bool IsDeclaration(Word lecsem, TreeNode<string> root)
         {
+            var bufferNode = new TreeNode<string>("");
             logging(depth + currdepth + 5, "<declaration>");
             var declarationNode = root.AddChild("<declaration>");
             if (IsVarIdentifier(input[index], declarationNode))
             {
-                //logging(depth + currdepth + 8, input[index].name);
                 var idenListNode = declarationNode.AddChild("<identifiers-list>");
-                if (IsIdentifierList(input[index], idenListNode))//in fun index++;
+                if (IsIdentifierList(input[index], idenListNode)) 
                 {
-                    if (input[index].name == IsDelimReserved(":")) // next symbol :
+                    if(IsIdentifier(input[index], bufferNode) == IsIdentifier(input[index -1], bufferNode))
                     {
-                        //logging(depth + currdepth + 4, input[index].name);
+                        idenListNode.AddChild("expected ',', but has " + input[index].name);
+                    }
+                    if (input[index].name == IsDelimReserved(":"))  
+                    {
                         declarationNode.AddChild(":");
                         index++;
-                        if (IsAttribute(input[index], declarationNode))//in fun index++;
+                        if (IsAttribute(input[index], declarationNode)) 
                         {
-                            //logging(depth + currdepth + 5, input[index].name);
+                             
                             if (IsAttributeList(input[index], declarationNode))
                             {
-                                if (input[index].name == IsDelimReserved(")"))
+                                if (input[index].name == IsDelimReserved(";"))
                                 {
-                                    logging(depth + currdepth + 5, ")");
+                                    declarationNode.AddChild(input[index].name);
                                     return true;
                                 }
-                                    
+                                else
+                                    declarationNode.AddChild("expected ';', but has " + input[index].name);
+
                             }
                         }
                     }
-                }
-                else
-                    Empty(depth);
-
-                /*if (IsAttribute(lecsem))
-                {
-                    if (IsAttributeList(lecsem))
-                    {
-
-                    }
                     else
-                        Empty(depth);
-                }*/
+                        idenListNode.AddChild("expected ':', but has " + input[index].name);
+                }
             }
             return false;
         }
@@ -334,7 +323,7 @@ namespace lecser.app_code
         public static bool IsDeclarationList(Word lecsem, TreeNode<string> root)
         {
             var declarationListNode = root.AddChild("<declarations-list>");
-            //logging(depth + currdepth + 4, "<declarations-list>");
+             
             if (input[index].name == IsDelimReserved(";") && input[index-1].name == IsDelimReserved(")"))
             {
                 declarationListNode.AddChild("<empty>");
@@ -343,26 +332,29 @@ namespace lecser.app_code
             if (input[index].name == ")")
             {
                 root.AddChild(")");
-                //logging(depth + currdepth + 2, ")");
-                //Empty(depth + currdepth + 5);//todo current depth
                 return true;
             }
             if (IsDeclaration(input[index], declarationListNode))
             {
                 index++;
-                return IsDeclarationList(input[index], root);
+                if(input[index].name == IsDelimReserved(")"))
+                {
+                    //declarationListNode.AddChild(input[index].name);
+                    return true;
+                }
+                return IsDeclarationList(input[index], declarationListNode);
             }
             else
-                return Empty(depth);
+                return true;
         }
 
         public static bool IsVarIdentifier(Word lecsem, TreeNode<string> root)
         {
             var varIdenNode = root.AddChild("<variable-identifier>");
-            //logging(depth + currdepth + depthin, "<variable-identifier>");
+             
             if (IsIdentifier(lecsem, varIdenNode))
             {
-                //logging(depth + currdepth + 8, lecsem.name);
+                 
                 return true;
             }
 
@@ -416,7 +408,7 @@ namespace lecser.app_code
         {
             if (!Resource.rules.Contains(rule))
             {
-                Console.ForegroundColor = ConsoleColor.DarkGreen;
+                Console.ForegroundColor = ConsoleColor.Green;
             }
             else
                 Console.ForegroundColor = ConsoleColor.DarkGray;
@@ -433,16 +425,6 @@ namespace lecser.app_code
                 dep += "| ";
             }
             return dep;
-        }
-
-        public static void Error(int depth, string info)
-        {
-            logging(depth, info);
-        }
-        public static bool Empty(int depth)
-        {
-            logging(depth, "<empty>");
-            return true;
         }
 
     }
