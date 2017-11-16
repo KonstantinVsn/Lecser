@@ -110,7 +110,6 @@ namespace lecser.app_code
                     index++;
                     if (IsParametrList(input[index]))
                     {
-                        index++;
                         if (input[index].name == IsDelimReserved(";"))
                         {
                             logging(depth + currdepth + 1, input[index].name);
@@ -126,10 +125,12 @@ namespace lecser.app_code
                                     }
                                 }
                             }
-                            else
+                            else if(input.Count == index+1)
                             {
-                                Error(depth + 3, "expected 'BEGIN', but has end of file");
+                                Console.WriteLine();
                             }
+                            else
+                                Error(depth + 3, "expected 'BEGIN', but has end of file");
                         }
                     }
                     else
@@ -142,7 +143,7 @@ namespace lecser.app_code
         public static bool IsPocedireIdentifier(Word lecsem)
         {
             logging(depth + currdepth + 2, "<procedure-identifier>");
-            if (IsIdentifier(lecsem))
+            if (IsIdentifier(lecsem, 0))
             {
                 logging(depth + currdepth + 4, lecsem.name);
                 return true;
@@ -174,10 +175,14 @@ namespace lecser.app_code
 
                 if (IsDeclarationList(input[index]))
                 {
-                    if (input[index].name == IsDelimReserved(")"))
+                    if (input[index].name == IsDelimReserved(";"))
                     {
-                        logging(depth + currdepth + 3, ")");
-                        return true;
+                        logging(depth + currdepth + 3, ";");
+                        //if (IsBlock(input[index], input[index + 1])){
+                            return true;
+                        //}
+                        
+                        
                     }
                 }
                 else
@@ -192,23 +197,29 @@ namespace lecser.app_code
 
             return false;
         }
-        public static bool IsIdentifier(Word lecsem)
+        public static bool IsIdentifier(Word lecsem, int depthin)
         {
             if (lecsem.code >= Resource.IDENTIFIERS_FROM && lecsem.code <= Resource.IDENTIFIERS_TO)
             {
-                logging(depth + currdepth + 3, "<identifier>");
+                logging(depth + currdepth + depthin + 3, "<identifier>");
                 return true;
             }
             return false;
         }
         public static bool IsAttributeList(Word lecsem)
         {
-            if (IsAttribute(lecsem))
+            index++;
+            logging(depth + currdepth + 4, "<attributes-list>");
+            if (IsAttribute(input[index]))
             {
-                if (IsAttributeList(lecsem))
+                logging(depth + currdepth + 5, input[index].name);
+                if (IsAttributeList(input[index]))
                     return true;
             }
-
+            else if (input[index].name == IsDelimReserved(")") && IsAttribute(input[index - 1]))
+            {
+                return true;
+            }
             return false;
         }
 
@@ -224,27 +235,46 @@ namespace lecser.app_code
 
         public static bool IsIdentifierList(Word lecsem)
         {
-            if (IsVarIdentifier(lecsem))
-                return true;
-            else
-                Empty(depth);
-            return false;
+            index++;
+            logging(depth +currdepth +6, "<identifiers-list>");
+            if (input[index].name == IsDelimReserved(","))
+            {
+                logging(depth + currdepth + 7, input[index].name);
+                index++;
+                if (IsVarIdentifier(input[index], 2))
+                {
+                    logging(depth + currdepth + 8, input[index].name);
+                    return IsIdentifierList(input[index]);
+                }
+            }
+            else if (input[index].name == IsDelimReserved(":") && !IsVarIdentifier(input[index - 1],0))
+                return false;
+            return true;
         }
 
         public static bool IsDeclaration(Word lecsem)
         {
-            logging(depth + 2, "<declaration>");
-            if (IsVarIdentifier(lecsem))
+            logging(depth + currdepth + 5, "<declaration>");
+            if (IsVarIdentifier(input[index], 4))
             {
-                if (IsIdentifierList(lecsem))
+                logging(depth + currdepth + 8, input[index].name);
+                if (IsIdentifierList(input[index]))//in fun index++;
                 {
-                    if (lecsem.name == IsDelimReserved(":")) // next symbol :
+                    if (input[index].name == IsDelimReserved(":")) // next symbol :
                     {
-                        if (IsAttribute(lecsem))
+                        logging(depth + currdepth + 4, input[index].name);
+                        index++;
+                        if (IsAttribute(input[index]))//in fun index++;
                         {
-                            if (IsAttributeList(lecsem))
+                            logging(depth + currdepth + 5, input[index].name);
+                            if (IsAttributeList(input[index]))
                             {
-                                return true;
+                                if (input[index].name == IsDelimReserved(")"))
+                                {
+                                    logging(depth + currdepth + 5, ")");
+                                    return true;
+                                }
+                                    
                             }
                         }
                     }
@@ -268,25 +298,31 @@ namespace lecser.app_code
         public static bool IsDeclarationList(Word lecsem)
         {
             logging(depth + currdepth + 4, "<declarations-list>");
+            if (input[index].name == IsDelimReserved(";") && input[index-1].name == IsDelimReserved(")"))
+            {
+                return true;
+            }
             if (input[index].name == ")")
             {
+                logging(depth + currdepth + 2, ")");
                 Empty(depth + currdepth + 5);//todo current depth
                 return true;
             }
             if (IsDeclaration(input[index]))
             {
-                IsDeclarationList(input[index]);
+                index++;
+                return IsDeclarationList(input[index]);
             }
             else
                 return Empty(depth);
-            return false;
         }
 
-        public static bool IsVarIdentifier(Word lecsem)
+        public static bool IsVarIdentifier(Word lecsem, int depthin)
         {
-            if (IsIdentifier(lecsem))
+            logging(depth + currdepth + depthin, "<variable-identifier>");
+            if (IsIdentifier(lecsem, depthin+1))
             {
-                logging(depth, "<attribute>");
+                //logging(depth + currdepth + 8, lecsem.name);
                 return true;
             }
 
