@@ -67,7 +67,7 @@ namespace lecser.app_code
                     goto print;
             }
             else
-                programNode.AddChild("(!) expected 'BEGIN' or 'PROCEDURE', but has end of file");
+                programNode.AddChild("(!) expected 'BEGIN' or 'PROCEDURE', but has" + input[index].name);
 
             print:
             PrintTree();
@@ -77,8 +77,14 @@ namespace lecser.app_code
 
         public static bool IsBlock(Word begin, Word end, TreeNode<string> root)
         {
+            if (!Resource.reservedWords.Contains(begin.name))
+            {
+                root.AddChild("(!) expected 'BEGIN OR PROCEDURE', but has " + "'" + begin.name + "'");
+                return false;
+            }
             var blockNode = root.AddChild("<block>");
-            if(begin.name == "PROCEDURE")
+
+            if (begin.name == "PROCEDURE")
             {
                 return false;
             }

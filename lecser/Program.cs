@@ -10,7 +10,7 @@ namespace lecser
     {
         static void Main()
         {
-            var path = "D:/5 курс/compilathor/_lecser/lecser/app data/input.txt";
+            var path = @"input.txt";
             var _input = Loader.Load(path);
             var lAnalizator = new LexAnalizator();
             var codedT = lAnalizator.Analyze(_input);
