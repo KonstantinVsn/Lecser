@@ -11,7 +11,6 @@ namespace lecser.app_code
         public static int index = 0;
         public static int depth = 0;
         public static TreeNode<string> treeRoot = new TreeNode<string>("<signal-program>");
-        public static int currdepth = 1;
         public static List<Word> input;
         public static List<Tuple<int, string>> log = new List<Tuple<int, string>>();
         public SyntaxAnalyze(List<Word> _input)
@@ -23,41 +22,37 @@ namespace lecser.app_code
         {
             logging(depth, "<signal-program>");
             TreeNode<string> programNode = treeRoot.AddChild("<program>");
+            var isProgram = false;
             if (input[index].name == "PROGRAM")
             {
                 index++;
-                
+                isProgram = true;
                 TreeNode<string> programINode = programNode.AddChild("PROGRAM");
                 if (IsPocedireIdentifier(input[index], programINode))
                 {
                     index++;
                     if (input[index].name == IsDelimReserved(";"))
                     {
-
-                        programINode.AddChild(input[index].name);
+                        programNode.AddChild(input[index].name);
                         index++;
-                        currdepth++;
-                        if (IsBlock(input[index], input[index + 1], programINode))
+                        if (input[index].name != "BEGIN" )
                         {
-                            if (input.Count > index + 2)
-                            {
-                                if (input[index + 2].name == IsDelimReserved("."))
+                            programNode.AddChild("(!) expected 'BEGIN', but has " + input[index].name);
+                            goto print;
+                        }
+                        if (IsBlock(input[index], input[index + 1], programNode))
+                        {
+                                if (input[index].name == IsDelimReserved("."))
                                 {
-                                    programINode.AddChild(input[index + 2].name);
+                                programNode.AddChild(input[index].name);
                                     //logging(depth + 2, input[index + 2].name);
                                     goto print;
                                 }
-                            }
                             else
                             {
                                 programINode.AddChild("(!) expected '.', but has end of file");
                                 goto print;
                             }
-                        }
-
-                        if (IsProcedure(input[index], programINode))
-                        {
-                            goto print;
                         }
                     }
                     else
@@ -66,8 +61,16 @@ namespace lecser.app_code
                 else
                     goto print;
             }
-            else
-                programNode.AddChild("(!) expected 'BEGIN' or 'PROCEDURE', but has" + input[index].name);
+            else if(input[index].name == "PROCEDURE" && !isProgram)
+            {
+                TreeNode<string> programINode = programNode.AddChild("PROCEDURE");
+                if (IsProcedure(input[index], programINode))
+                {
+                    goto print;
+                }
+            }
+            else 
+                programNode.AddChild("(!) expected 'BEGIN' , but has" + input[index].name);
 
             print:
             PrintTree();
@@ -111,11 +114,11 @@ namespace lecser.app_code
             return false;
         }
 
-        public static bool IsProcedure(Word lecsem, TreeNode<string> root)
+        public static bool IsProcedure(Word lecsem, TreeNode<string> procedureNode)
         {
             if (lecsem.name == "PROCEDURE")
             {
-                var procedureNode = root.AddChild(lecsem.name);
+               // var procedureNode = root.AddChild(lecsem.name);
                  
                 index++;
                 if (IsPocedireIdentifier(input[index], procedureNode))
@@ -233,7 +236,6 @@ namespace lecser.app_code
              
             if (IsAttribute(input[index], AttributeListNode))
             {
-                logging(depth + currdepth + 5, input[index].name);
                 if (IsAttributeList(input[index], AttributeListNode))
                     return true;
             }
@@ -288,7 +290,6 @@ namespace lecser.app_code
         public static bool IsDeclaration(Word lecsem, TreeNode<string> root)
         {
             var bufferNode = new TreeNode<string>("");
-            logging(depth + currdepth + 5, "<declaration>");
             var declarationNode = root.AddChild("<declaration>");
             if (IsVarIdentifier(input[index], declarationNode))
             {

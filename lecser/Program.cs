@@ -14,14 +14,13 @@ namespace lecser
             var _input = Loader.Load(path);
             var lAnalizator = new LexAnalizator();
             var codedT = lAnalizator.Analyze(_input);
-            lAnalizator.PrintTables();
-            Console.WriteLine("=====================Lexical analyze=======================\n");
-            var sAnalizator = new SyntaxAnalyze(codedT);
-            sAnalizator.Analyze();
-
             
-
-            
+            if(codedT != null)
+            {
+                Console.WriteLine("=====================Syntax analyze=======================\n");
+                var sAnalizator = new SyntaxAnalyze(codedT);
+                sAnalizator.Analyze();
+            }
             Console.ReadKey();
             _input.Close();
         }
