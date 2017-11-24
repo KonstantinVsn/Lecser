@@ -103,7 +103,13 @@ namespace lecser.app_code
                     index++;
                 }
                 else
-                    blockNode.AddChild("(!) expected 'END', but has " + begin.name);
+                {
+                    if (GetIFThenElse(end))
+                    {
+
+                    }
+                    blockNode.AddChild("(!) expected 'END', but has " + end.name);
+                }
                 return true;
             }
             if (begin.name == "END")
@@ -182,6 +188,7 @@ namespace lecser.app_code
             }
             return null;
         }
+
 
         public static bool IsParametrList(Word lecsem, TreeNode<string> root)
         {
@@ -432,6 +439,15 @@ namespace lecser.app_code
                 dep += "| ";
             }
             return dep;
+        }
+
+        public static bool GetIFThenElse(Word lecsem)
+        {
+            if(input[index+1].name == "IF")
+            {
+
+            }
+            return false;
         }
 
     }

@@ -8,10 +8,11 @@ namespace lecser.app_code
 {
     class Resource
     {
-        public static char[] delimiters = { ';', '(', ')', ':', ',', '>', '<', '.'};
+        public static char[] delimiters = { ';', '(', ')', ':', ',', '>', '<', '.', '='};
         public static string[] multi_delimiters = { "(*", "*)" };
+        public static string[] multi_delims = { "<=", ">=" };
         public static string[] reservedWords = { "PROGRAM", "PROCEDURE", "INTEGER", "EXT", "FLOAT", "BLOCKFLOAT",
-                                             "SIGNAL", "NO", "ATTR ", "BEGIN","ALWAYSE","EMPTY", "END", "COMPLEX"};
+                                             "SIGNAL", "NO", "ATTR ", "BEGIN","ALWAYSE","EMPTY", "END", "COMPLEX", "IF", "THEN", "ELSE"};
 
         public static string[] rules = { "<signal-program>", "<program>", "<procedure-identifier>", "<procedure-identifier>", "<parameters-list>",
             "<block>", "<statements-list>", "<empty>", "<declarations-list>", "<declaration>", "<variable-identifier>", "<identifiers-list>", "<attribute>",

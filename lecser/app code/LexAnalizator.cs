@@ -180,13 +180,22 @@ namespace lecser.app_code
                                 {
                                     do
                                     {
-                                        i++;
                                         l_identif += l_word.name[i];
-                                    } while (IsLetter(l_word.name[i]));
+                                        i++;
+                                        
+                                    } while (l_word.name.Length > i);
                                     break;
                                 }
                             }
 
+                            if(l_identif == "")
+                            {
+                                var constantWord = new Word(code, l_constant, col, row);
+                                ConstantT.Add(constantWord);
+                                l_word.code = GetCode(CTypes.Constant, constantWord.code);
+                                FillCodeT(constantWord);
+                                return;
+                            }
                             var constant_word = new Word(code, l_constant, col, row);
                             ConstantT.Add(constant_word);
                             var identif_word = new Word(code, l_identif, col + l_constant.Length, row);
